@@ -1,6 +1,6 @@
 import pygame
 from pygame.locals import *
-
+import collections
 
 BLACK= ( 0,  0,  0)
 WHITE= (255,255,255)
@@ -30,6 +30,7 @@ class Gomoku:
     #초기설정
     self.mouse_point = (0,0)
     self.now_color = False # 0=black 1=white
+    self.game_over = 0
 
   def get_close_point(self, pt):
     x = (pt[0]-90)//30
@@ -44,6 +45,61 @@ class Gomoku:
     # print(dist,dist.index(min(dist)),candidate)
     #0은 gui 1은 숫자칸
     return [self.gui_point[candidate[dist.index(min(dist))][0]][candidate[dist.index(min(dist))][1]], candidate[dist.index(min(dist))]]
+  
+  def check_five_in_row(self):
+    #가로체크
+    for i in range(0,19):
+      for j in range(0,15):
+        if self.state[i][j] == self.state[i][j+1] == self.state[i][j+2] == self.state[i][j+3] == self.state[i][j+4] and self.state[i][j]:
+          return self.state[i][j]
+    
+    #세로체크
+    for j in range(0,19):
+      for i in range(0,15):
+        if self.state[i][j] == self.state[i+1][j] == self.state[i+2][j] == self.state[i+3][j] == self.state[i+4][j] and self.state[i][j]:
+          return self.state[i][j]
+    
+    #대각체크 왼쪽 아래방향
+    for i in range(0,19):
+      pt = [0,i]
+      while True:
+        if pt[0]+4>=19 or pt[1]+4>=19:
+          break
+        if self.state[pt[0]][pt[1]] == self.state[pt[0]+1][pt[1]+1] == self.state[pt[0]+2][pt[1]+2] == self.state[pt[0]+3][pt[1]+3] == self.state[pt[0]+4][pt[1]+4] and self.state[pt[0]][pt[1]]:
+          return self.state[pt[0]][pt[1]]
+        pt[0] += 1
+        pt[1] += 1
+    for i in range(1,19):
+      pt = [i,0]
+      while True:
+        if pt[0]+4>=19 or pt[1]+4>=19:
+          break
+        if self.state[pt[0]][pt[1]] == self.state[pt[0]+1][pt[1]+1] == self.state[pt[0]+2][pt[1]+2] == self.state[pt[0]+3][pt[1]+3] == self.state[pt[0]+4][pt[1]+4] and self.state[pt[0]][pt[1]]:
+          return self.state[pt[0]][pt[1]]
+        pt[0] += 1
+        pt[1] += 1
+
+    #대각체크 오른쪽 아래방향
+    for i in range(0,19):
+      pt = [18,i]
+      while True:
+        if pt[0]-4<0 or pt[1]+4>=19:
+          break
+        if self.state[pt[0]][pt[1]] == self.state[pt[0]-1][pt[1]+1] == self.state[pt[0]-2][pt[1]+2] == self.state[pt[0]-3][pt[1]+3] == self.state[pt[0]-4][pt[1]+4] and self.state[pt[0]][pt[1]]:
+          return self.state[pt[0]][pt[1]]
+        pt[0] -= 1
+        pt[1] += 1
+    for i in range(1,19):
+      pt = [i,0]
+      while True:
+        if pt[0]-4<0 or pt[1]+4>=19:
+          break
+        if self.state[pt[0]][pt[1]] == self.state[pt[0]-1][pt[1]+1] == self.state[pt[0]-2][pt[1]+2] == self.state[pt[0]-3][pt[1]+3] == self.state[pt[0]-4][pt[1]+4] and self.state[pt[0]][pt[1]]:
+          return self.state[pt[0]][pt[1]]
+        pt[0] -= 1
+        pt[1] += 1
+
+    return False
 
   def put_stone(self,temp_point):
     if self.now_color:
@@ -51,6 +107,11 @@ class Gomoku:
     else:
       self.state[temp_point[1][0]][temp_point[1][1]]=1
     self.now_color = not self.now_color
+    #5줄 확인
+    is_end = self.check_five_in_row()
+    if is_end:
+      self.game_over = is_end
+      print(self.game_over==1 and 'Black Wins!' or 'White Wins!')
 
   def play_step(self):
     self.screen.fill(WOOD) #단색으로 채워 화면 지우기
@@ -111,7 +172,6 @@ class Gomoku:
         temp_point = self.get_close_point(self.mouse_point)
         if self.state[temp_point[1][0]][temp_point[1][1]]==0:
           self.put_stone(temp_point)
-          #5줄 완성되는지 확인
 
     #돌 두기전에
     elif event.type == pygame.MOUSEMOTION:
@@ -121,10 +181,11 @@ class Gomoku:
 
     pygame.display.update() #모든 화면 그리기 업데이트
     # clock.tick(60) #60 FPS (초당 프레임 수) 를 위한 딜레이 추가, 딜레이 시간이 아닌 목표로 하는 FPS 값
-    
+    return self.game_over
 
 if __name__ == '__main__':
   game = Gomoku()
   
   while True:
-    game.play_step()
+    if game.play_step():
+      break
